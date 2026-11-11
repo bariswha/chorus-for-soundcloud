@@ -31,3 +31,5 @@ Chorus sends all traffic through public MQTT relays that anyone can connect to. 
 - Messages are delivered only while both sides are online. Nothing is stored on a server.
 - A flood of junk messages to a known inbox topic can cost the recipient some CPU, even though the messages are rejected.
 - Keys are stored in `chrome.storage.local`, which is protected by the browser profile and not by a passphrase.
+- There is no forward secrecy. Jam keys stay the same until the host issues a new code, and direct messages are encrypted to each person's long-term key. If a key leaks, traffic recorded earlier could be decrypted.
+- The project has been reviewed and tested but not audited by a professional security firm. Don't use it for sensitive information.

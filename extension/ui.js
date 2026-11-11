@@ -1080,7 +1080,7 @@ const UI = {
       body += `<div class="chorus-msg${mine ? ' is-mine' : ''}${first ? ' is-first' : ''}" data-key="m:${esc(m.mid)}">${!mine && isJam ? (first ? avatar(who, 24) : '<span class="chorus-av-gap"></span>') : ''}<div class="chorus-bubble-wrap">${!mine && isJam && first ? `<span class="chorus-msg-name">${esc(who.name)}</span>` : ''}<div class="chorus-bubble" title="${esc(hhmm(m.ts))}">${rich(m.text)}</div></div></div>`;
       prev = m;
     }
-    if (!msgs.length) body = `<div class="chorus-thread-empty" data-key="empty">${isJam ? ICON.people : avatar(f, 48)}<b>${esc(isJam ? tr('jamChat') : f ? f.name : '')}</b><span>${esc(tr(isJam ? 'jamChatHint' : 'dmHint'))}</span></div>`;
+    if (!msgs.length) body = `<div class="chorus-thread-empty" data-key="empty">${isJam ? ICON.people : avatar(f, 48)}<b>${esc(isJam ? tr('jamChat') : f ? f.name : '')}</b><span>${esc(tr(isJam ? 'jamChatHint' : 'dmHint'))}</span><small class="chorus-warn">${esc(tr('chatWarn'))}</small></div>`;
     const offline = !isJam && f && !f.on;
     const disabled = !v.online || offline || (isJam && !jam);
     const note = offline ? `<div class="chorus-compose-note" data-key="cnote">${esc(tr('dmOffline', { name: f.name }))}</div>` : '';
