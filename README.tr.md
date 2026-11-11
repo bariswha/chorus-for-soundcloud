@@ -71,6 +71,7 @@ Aracı sunucular yalnızca şifreli veriyi, rastgele görünen konu adlarını v
 - **Hassas bilgi için değil.** Mesajlar uçtan uca şifreli, ama Chorus birlikte müzik dinlemek için yapıldı, özel yazışmalar için değil. Şifre, kişisel belge ya da hassas bir bilgi paylaşma.
 - **Davet kodu bir anahtardır.** Bir Jam'in davet koduna sahip olan herkes Jam'e katılabilir ve sohbetini okuyabilir. Kodu yalnızca güvendiğin kişilerle paylaş; sızarsa **Yeni davet kodu** oluştur.
 - **Profesyonel denetimden geçmedi.** Kod incelendi ve test edildi, ama bir güvenlik firması tarafından denetlenmedi. İleriye dönük gizlilik (forward secrecy) yok: bir anahtar ileride ele geçirilirse daha önce kaydedilmiş trafik çözülebilir. Ayrıntılar [SECURITY.md](SECURITY.md) dosyasında.
+- **Kontrol yetkisi gerçekten kontrol demek.** **Kontrol** yetkisi verdiğin kişi senin sekmende herhangi bir SoundCloud şarkısını çalabilir; şarkı senin hesabından çalar ve dinleme geçmişinde görünebilir.
 - **Ses paylaşılmaz.** Chorus ses dosyası indirmez, kaydetmez ya da dağıtmaz. Her dinleyici şarkıyı kendi SoundCloud sekmesinde çalar; SoundCloud kullanımın SoundCloud'un kendi koşullarına tabidir.
 - **Olduğu gibi sunulur.** Chorus ücretsiz bir hobi projesidir ve hiçbir garanti vermez. Ayrıntılar [LICENSE](LICENSE) dosyasında.
 

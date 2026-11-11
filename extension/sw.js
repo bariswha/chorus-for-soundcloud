@@ -64,13 +64,15 @@ function limit(key, max, per) {
 
 function fresh(nonce) {
   if (typeof nonce !== 'string' || nonce.length < 8 || nonce.length > 40 || nonces.has(nonce)) return false;
-  nonces.set(nonce, Date.now());
-  clearTimeout(nonceTimer);
-  nonceTimer = setTimeout(() => chrome.storage.session.set({ nonces: [...nonces].slice(-1500) }).catch(() => {}), 300);
-  if (nonces.size > 2000) {
-    const cut = Date.now() - CLOCK_WINDOW * 2;
-    for (const [k, t] of nonces) if (t < cut || nonces.size > 1500) nonces.delete(k);
+  const now = Date.now();
+  if (nonces.size >= 4000) {
+    const cut = now - CLOCK_WINDOW * 2;
+    for (const [k, t] of nonces) if (t < cut) nonces.delete(k);
+    if (nonces.size >= 4000) return false;
   }
+  nonces.set(nonce, now);
+  clearTimeout(nonceTimer);
+  nonceTimer = setTimeout(() => chrome.storage.session.set({ nonces: [...nonces] }).catch(() => {}), 0);
   return true;
 }
 
@@ -206,7 +208,8 @@ function online() {
   connecting = (async () => {
     await identity();
     const pres = await presTarget(me.id, presence.secret);
-    const will = { topic: pres.topic, payload: await seal(pres.key, { on: false, ts: Date.now() }), retain: true };
+    const off = JSON.stringify({ on: false, id: me.id, ts: Date.now() });
+    const will = { topic: pres.topic, payload: await seal(pres.key, { p: off, s: await sign(me.sPriv, off) }), retain: true };
     let mq = null;
     for (const url of BROKERS) {
       const c = new Mqtt(url);
@@ -268,7 +271,8 @@ async function goOffline() {
   watching.clear();
   live.clear();
   try {
-    n.mq.pub(n.pres.topic, await seal(n.pres.key, { on: false, ts: Date.now() }), true);
+    const off = JSON.stringify({ on: false, id: me.id, ts: Date.now() });
+    n.mq.pub(n.pres.topic, await seal(n.pres.key, { p: off, s: await sign(me.sPriv, off) }), true);
   } catch {}
   setTimeout(() => n.mq.close(), 300);
 }
@@ -346,10 +350,7 @@ function unwatchFriend(id) {
 async function onPresence(id, pk, key, data) {
   const f = friends[id];
   if (!f || f.pk !== pk) return;
-  if (!data.length) {
-    if (live.delete(id)) push();
-    return;
-  }
+  if (!data.length) return;
   const env = await open(key, data);
   let o = null;
   if (env && typeof env.p === 'string' && env.p.length < 8000 && (await verify(f.sk, env.p, env.s))) {
@@ -358,7 +359,8 @@ async function onPresence(id, pk, key, data) {
     } catch {}
   }
   if (o && o.id !== id) o = null;
-  if (!o || !o.on || Math.abs(Date.now() - num(o.ts)) > PRESENCE_TTL) {
+  if (!o) return;
+  if (!o.on || Math.abs(Date.now() - num(o.ts)) > PRESENCE_TTL) {
     if (live.delete(id)) push();
     return;
   }
@@ -397,6 +399,7 @@ async function openEnvelope(data) {
   if (Math.abs(Date.now() - num(p.ts)) > CLOCK_WINDOW) return null;
   if ((await idOf(env.sk, env.dk)) !== p.from) return null;
   if (!(await verify(env.sk, env.p, env.s))) return null;
+  if (!limit('inbox', 150, 20000) || !limit('i:' + p.from, 40, 20000)) return null;
   if (!fresh(p.n)) return null;
   return { from: p.from, sk: env.sk, dk: env.dk, body: obj(p.b) };
 }
@@ -524,7 +527,7 @@ function addDm(id, msg) {
 
 async function onInbox(data) {
   const e = await openEnvelope(data);
-  if (!e || !limit('i:' + e.from, 40, 20000)) return;
+  if (!e) return;
   const b = e.body;
   const f = friends[e.from];
   const peer = { id: e.from, sk: e.sk, dk: e.dk };
@@ -553,7 +556,7 @@ async function onInbox(data) {
       if (pending.length >= 50) delete requests[pending[0].id];
       requests[e.from] = { id: e.from, sk: e.sk, dk: e.dk, who, pk: b.pk, dir: 'in', at: Date.now() };
       saveRequests();
-      notify('reqIn', who);
+      if (limit('reqtoast', 5, 60000)) notify('reqIn', who);
       push();
       break;
     }
@@ -753,7 +756,7 @@ function routeJam(j) {
 async function enterJam(id, secret, state = null, skew = 0, chat = [], expect = null) {
   const t = await jamTarget(id, secret);
   const log = Array.isArray(chat) ? chat.slice(-150) : [];
-  jam = { id, secret, key: t.key, topic: t.topic, state: state ? cleanState(state) : null, skew: num(skew), samples: [], heard: Date.now(), hostAt: 0, contest: 0, expect, chat: log, seen: new Set(log.map(c => c.mid)), unread: 0 };
+  jam = { id, secret, key: t.key, topic: t.topic, state: state ? cleanState(state) : null, skew: num(skew), samples: [], heard: Date.now(), hostAt: 0, expect, chat: log, seen: new Set(log.map(c => c.mid)), unread: 0 };
   if (net) routeJam(jam);
   save();
 }
@@ -856,7 +859,7 @@ async function leaveJam(silent) {
 
 async function jamSend(m, j = jam) {
   if (!net || !j) return;
-  const p = JSON.stringify({ ...m, from: me.id, j: j.id, ts: Date.now() });
+  const p = JSON.stringify({ ...m, from: me.id, j: j.id, ts: Date.now(), n: rid(16) });
   net.mq.pub(j.topic, await seal(j.key, { p, s: await sign(me.sPriv, p), sk: me.sk, dk: me.dk }));
 }
 
@@ -875,6 +878,7 @@ async function onJam(j, data) {
   if ((await idOf(env.sk, env.dk)) !== m.from) return;
   if (!(await verify(env.sk, env.p, env.s))) return;
   if (j !== jam || !limit('j:' + m.from, 120, 20000)) return;
+  if (['op', 'join', 'leave', 'deny', 'react', 'chat'].includes(m.t) && !fresh('j' + str(m.n, 30))) return;
   m.sk = env.sk;
   m.dk = env.dk;
   jamMsg(m);
@@ -1012,8 +1016,10 @@ function acceptState(m) {
       return;
     }
     const fromHost = m.from === s.host;
-    const takeover = !!s.members[m.from] && n.host === m.from && (now - jam.heard > 8000 || (now - jam.contest < 15000 && m.from < s.host));
-    if (takeover && !fromHost) jam.contest = now;
+    const successor = Object.keys(s.members)
+      .filter(id => id !== s.host)
+      .sort()[0];
+    const takeover = m.from === successor && n.host === m.from && now - jam.heard > 10000;
     if (!fromHost && !takeover) return;
   }
   const prevHost = s && s.host;
@@ -1330,7 +1336,7 @@ function apply(op, from) {
     }
     case 'promote': {
       const i = inCtx(op.qid);
-      if (i < 0) return;
+      if (i < 0 || s.queue.length >= 300) return;
       s.queue.push(s.ctx.items.splice(i, 1)[0]);
       break;
     }
@@ -1383,7 +1389,7 @@ function apply(op, from) {
         s.at = when(op, 200);
         s.ended = false;
       } else {
-        if (s.cur) s.queue.unshift(s.cur);
+        if (s.cur && s.queue.length < 300) s.queue.unshift(s.cur);
         s.cur = s.hist.pop();
         s.pos = 0;
         s.at = when(op, LEAD);

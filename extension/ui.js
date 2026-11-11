@@ -286,6 +286,7 @@ const UI = {
 
   open(page, thread) {
     this.page = page || null;
+    if (page === 'lyrics' && this.onLyricsOpen) setTimeout(() => this.onLyricsOpen(), 0);
     if (page === 'thread') {
       this.thread = thread;
       this.stick = true;
@@ -328,6 +329,7 @@ const UI = {
     const prev = this.soloTick;
     this.soloTick = m;
     if ((prev && prev.t && prev.t.id) !== (m.t && m.t.id)) {
+      if (this.isOpen && this.page === 'lyrics' && this.onLyricsOpen) this.onLyricsOpen();
       this.indicators();
       if (!this.jam() && this.page === 'lyrics') {
         this.lastLine = -2;
@@ -946,7 +948,7 @@ const UI = {
         right = m.asked ? `<span class="chorus-muted-s">${esc(tr('requested'))}</span>` : ibtn(ICON.personAdd, tr('addFriend'), 'friendAdd', { 'data-id': m.id });
       }
       const badge = host ? `<em class="chorus-host">${esc(tr('host'))}</em>` : !jam.isHost && self ? '' : '';
-      h += `<div class="chorus-person${this.menu === m.id ? ' is-open' : ''}" data-key="m:${esc(m.id)}">${avatar(m, 32)}<div class="chorus-meta"><span class="chorus-t">${esc(self ? tr('youName', { name: m.name }) : m.name)}${badge}</span>${host || jam.isHost ? '' : `<span class="chorus-a">${esc(tr(m.ctl ? 'roleCtl' : m.add ? 'roleAdd' : 'roleListen'))}</span>`}</div>${right}</div>`;
+      h += `<div class="chorus-person${this.menu === m.id ? ' is-open' : ''}" data-key="m:${esc(m.id)}">${avatar(m, 32)}<div class="chorus-meta"><span class="chorus-t">${esc(self ? tr('youName', { name: m.name }) : m.name)}${!self && !m.friend ? `<span class="chorus-idtag">#${esc(m.id.slice(0, 4))}</span>` : ''}${badge}</span>${host || jam.isHost ? '' : `<span class="chorus-a">${esc(tr(m.ctl ? 'roleCtl' : m.add ? 'roleAdd' : 'roleListen'))}</span>`}</div>${right}</div>`;
       if (jam.isHost && this.menu === m.id && !self) {
         h += `<div class="chorus-menu" data-key="mm:${esc(m.id)}">${btn(tr('makeHost'), 'makeHost', 'sec', { 'data-id': m.id })}${m.friend || m.asked ? '' : btn(tr('addFriend'), 'friendAdd', 'sec', { 'data-id': m.id })}${btn(tr('removeFromJam'), 'kick', 'danger', { 'data-id': m.id })}</div>`;
       }
@@ -1077,7 +1079,7 @@ const UI = {
       const who = isJam ? m.who || (jam && jam.members[m.from]) || { name: '?' } : mine ? v.me : f;
       const first = !prev || prev.from !== m.from || m.ts - prev.ts > 300000;
       if (!prev || m.ts - prev.ts > 1800000) body += `<div class="chorus-day" data-key="d:${esc(m.mid)}">${hhmm(m.ts)}</div>`;
-      body += `<div class="chorus-msg${mine ? ' is-mine' : ''}${first ? ' is-first' : ''}" data-key="m:${esc(m.mid)}">${!mine && isJam ? (first ? avatar(who, 24) : '<span class="chorus-av-gap"></span>') : ''}<div class="chorus-bubble-wrap">${!mine && isJam && first ? `<span class="chorus-msg-name">${esc(who.name)}</span>` : ''}<div class="chorus-bubble" title="${esc(hhmm(m.ts))}">${rich(m.text)}</div></div></div>`;
+      body += `<div class="chorus-msg${mine ? ' is-mine' : ''}${first ? ' is-first' : ''}" data-key="m:${esc(m.mid)}">${!mine && isJam ? (first ? avatar(who, 24) : '<span class="chorus-av-gap"></span>') : ''}<div class="chorus-bubble-wrap">${!mine && isJam && first ? `<span class="chorus-msg-name">${esc(who.name)}${jam && jam.members[m.from] && jam.members[m.from].friend ? '' : `<span class="chorus-idtag">#${esc(String(m.from).slice(0, 4))}</span>`}</span>` : ''}<div class="chorus-bubble" title="${esc(hhmm(m.ts))}">${rich(m.text)}</div></div></div>`;
       prev = m;
     }
     if (!msgs.length) body = `<div class="chorus-thread-empty" data-key="empty">${isJam ? ICON.people : avatar(f, 48)}<b>${esc(isJam ? tr('jamChat') : f ? f.name : '')}</b><span>${esc(tr(isJam ? 'jamChatHint' : 'dmHint'))}</span><small class="chorus-warn">${esc(tr('chatWarn'))}</small></div>`;

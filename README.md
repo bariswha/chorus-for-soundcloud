@@ -97,6 +97,7 @@ Issues and pull requests are welcome. Keep the extension dependency‑free, vali
 - **Not for sensitive information.** Messages are end-to-end encrypted, but Chorus is made for listening to music together, not for private conversations. Don't share passwords, personal documents or anything sensitive through it.
 - **Invite codes are keys.** Anyone who has a Jam's invite code can join it and read its chat. Share codes only with people you trust, and use **New invite code** if one leaks.
 - **No professional audit.** The code has been reviewed and tested, but it hasn't been audited by a security firm. There is no forward secrecy: if a key leaks later, previously recorded traffic could be decrypted. See [SECURITY.md](SECURITY.md).
+- **Control means control.** Someone you give **Control** can play any SoundCloud track in your tab, so it plays from your account and can show up in your listening history.
 - **No audio is shared.** Chorus doesn't download, record or redistribute audio. Each listener plays tracks in their own SoundCloud tab, and using SoundCloud remains subject to SoundCloud's own terms.
 - **Provided as is.** Chorus is a free hobby project with no warranty of any kind. See [LICENSE](LICENSE).
 
